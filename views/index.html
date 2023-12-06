@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Exercise Tracker Microservice</title>
+	<link rel="stylesheet" href="/public/index.css"/>
+</head>
+<body>
+<div class="main-container">
+<header>
+		<h1>Exercise Tracker Microservice</h1>
+</header>
+<main>
+		<form id="username-form" action="/api/users" method="post">
+			<h2>Create a new user</h2>
+			<p class="display-path">POST Path: <code>/api/users</code></p>
+			<div class="message-wrapper">
+				<label for="username-input">Username:</label>
+				<p id="available" class="message"></p>
+			</div>
+			<input type="text" id="username-input" name="username" placeholder="Enter username" required/>
+			<input type="submit" value="Enter username"/>
+		</form>
+
+		<form id="exercise-form" action="/api/users/:_id/exercises" method="post">
+			<h2>Add exercises</h2>
+			<p class="display-path">POST Path: <code id="exercise-code">/api/users/:_id/exercises</code></p>
+			<label>Username ID:
+				<input type="text" id="exercise-id-input" name="_id" placeholder="Enter username ID" required/>
+			</label>
+			<label>Description:
+				<input type="text" name="description" placeholder="Enter exercise description" required/>
+			</label>
+			<label>Duration:
+				<input type="text" name="duration" placeholder="Enter exercise duration" required/>
+			</label>
+			<label>Date:
+				<input type="text" name="date" pattern="\d\d\d\d-\d\d-\d\d" placeholder="yyyy-mm-dd" />
+			</label>
+			<input type="submit" value="Enter exercise"/>
+		</form>
+
+		<form>
+			<h2>Get all users</h2>
+			<p class="display-path">GET path: <code class="copy-code">/api/users/</code></p>
+			<small>*Click the above relative url to copy it after entering the required and optional information below. Enter it in the address bar to get a JSON version of the requested information.</small>
+			<input type="button" id="get-users" value="Get all users"/>
+		</form>
+		<form id="get-exercise-form">
+			<h2>Retrieving exercises</h2>
+			<p class="display-path">Post path: <code id="get-code" class="copy-code">/api/users/:_id/logs</code></p>
+			<small>*Click the above relative url to copy it after entering the required and optional information below. Enter it in the address bar to get a JSON version of the requested information.</small>
+			<label>Username ID:
+				<input type="text" name="id" id="get-id-input" placeholder="Enter username ID" required/>
+			</label>
+			<label>Optional - From:
+				<input type="text" name="from" id="get-from-input" pattern="\d\d\d\d-\d\d-\d\d" placeholder="yyyy-mm-dd"/>
+			</label>
+			<label>Optional - To:
+				<input type="text" name="to" id="get-to-input" pattern="\d\d\d\d-\d\d-\d\d" placeholder="yyyy-mm-dd"/>
+			</label>
+			<label>Optional - Limit:
+				<input type="number" name="limit" id="get-limit-input" step="1" min="0" max="9999" placeholder="Enter from 0 to 9999"/>
+			</label>
+			<input type="submit" value="Retreive exercise log" id="get-exercise-submit"/>
+		</form>
+</main>
+<footer>
+		<p>Challenge: <a href="https://www.freecodecamp.org/learn/back-end-development-and-apis/back-end-development-and-apis-projects/exercise-tracker">Exercise Tracker Microservice</a></p>
+		<p>Created by <a href="https://replit.com/@natsuoffairytai">Eddie</a> per <a href="https://www.freecodecamp.org">freeCodeCamp.org</a> requirements</p>
+</footer>
+</div>
+<div class="view-container hide">
+<button type="button" id="view-close-button">x</button>
+<p id="display-username"></p>
+<ul class="view-data"></ul>
+</div>
+<script>
+function $(id,all){
+			return all ? document.querySelectorAll(id) : document.querySelector(id);
+		}
+const codeElements = $(".copy-code",true);
+		codeElements.forEach((code)=>{
+			code.addEventListener("click",(event)=>{
+				navigator.clipboard.writeText(event.currentTarget.textContent);
+			})
+		})
+const usernameInput = $("#username-input");
+const available = $("#available");
+usernameInput.addEventListener("keyup",async (event)=>{
+	const response = await fetch("http://localhost:3000/api/users");
+	const users = await response.json();
+	if(users.length){
+		const created = users.filter((user)=> user.username === usernameInput.value);
+		if(created.length){
+			available.textContent = "Username has already been created click button for the id";
+		}else{
+			available.textContent = "Username is available";
+		}
+		if(!usernameInput.value.length){
+			available.textContent = "";
+		}
+	}else{
+		available.textContent = ""
+	}
+})
+
+const exerciseIDInput = $("#exercise-id-input");
+const exerciseForm = $("#exercise-form");
+exerciseForm.addEventListener("submit",(event)=>{
+	exerciseForm.action ="/api/users/" + exerciseIDInput.value + "/exercises";
+})
+const exerciseCode = $("#exercise-code");
+exerciseIDInput.addEventListener("keyup",(event)=>{
+		if(exerciseIDInput.value.length >= 32){
+			exerciseIDInput.value = exerciseIDInput.value.slice(0,32);
+			return;
+		}
+		exerciseCode.textContent = `/api/users/${exerciseIDInput.value}/exercises`;
+		if(!exerciseIDInput.value){
+			exerciseCode.textContent = "/api/users/:_id/exercises";
+		}
+})
+
+const getCode = $("#get-code");
+const getIDInput = $("#get-id-input");
+const getFromInput = $("#get-from-input");
+const getToInput = $("#get-to-input");
+const getLimitInput = $("#get-limit-input");
+let url = "";
+function createURL({id:idValue,from:fromValue,to:toValue,limit:limitValue}){
+	if(idValue){
+		url = `/api/users/${idValue}/logs`;
+	}else{
+		url = `/api/users/:_id/logs`;
+	}
+	if(fromValue && fromValue.length >= 10){
+		url +=  `?from=${fromValue.slice(0,10)}`;
+	}
+	if(toValue && toValue.length >= 10){
+		const end = url.slice(-1);
+		if(/\d/.test(end)){
+			url += `&to=${toValue.slice(0,10)}`;
+		}else{
+			url += `?to=${toValue.slice(0,10)}`
+		}
+	}
+	if(limitValue){
+		const end = url.slice(-1);
+		if(Number.parseInt(end, 10)){
+			url += `&limit=${getLimitInput.value.slice(0,4)}`;
+		}else{
+			url += `?limit=${getLimitInput.value.slice(0,4)}`;
+		}
+	}
+	return url;
+}
+
+getIDInput.addEventListener("keyup",(event)=>{
+	getCode.textContent = createURL({id:getIDInput.value,from:getFromInput.value,to:getToInput.value,limit:getLimitInput.value})
+	if(getIDInput.value.length >= 32){
+		getIDInput.value = getIDInput.value.slice(0,32);
+		return;
+	}
+});
+getFromInput.addEventListener("keyup",(event)=>{
+	getCode.textContent = createURL({id:getIDInput.value,from:getFromInput.value,to:getToInput.value,limit:getLimitInput.value})
+})
+getToInput.addEventListener("keyup",(event)=>{
+	getCode.textContent = createURL({id:getIDInput.value,from:getFromInput.value,to:getToInput.value,limit:getLimitInput.value})
+})
+const numberMessage = $("#number-message");
+getLimitInput.addEventListener("keyup",(event)=>{
+	getLimitInput.value = event.currentTarget.value.slice(0,4);
+	getCode.textContent = createURL({id:getIDInput.value,from:getFromInput.value,to:getToInput.value,limit:event.currentTarget.value});
+		
+})
+const getExerciseForm = $("#get-exercise-form");
+const getExerciseSubmit = $("#get-exercise-submit");
+const viewData = $(".view-data");
+getExerciseForm.addEventListener("submit",async (event)=>{
+	event.preventDefault();
+	const response = await fetch("http://localhost:3000" + getCode.textContent);
+	const data = await response.json();
+	if(!data.error){
+		const displayUsername = $("#display-username");
+		displayUsername.textContent = "Username: " + data.username;
+		data.log.forEach((entry)=>{
+			displayData(viewData, `<li>
+					<p><span>Description:</span> ${entry.description}</p>
+					<p><span>Duration:</span> ${entry.duration}</p>
+					<p><span>Date:</span> ${entry.date}</p>
+				</li>`)
+		})
+	}else{
+		displayData(viewData, `<li>
+				<p>No username with that ID</p>
+			</li>`)
+	}
+	viewContainer.classList.remove("hide");
+})
+
+const viewContainer = $(".view-container");
+const closeView = $("#view-close-button");
+closeView.addEventListener("click",(event)=>{
+		viewContainer.classList.add("hide");
+		viewData.innerHTML = "";
+})
+const getUsersButton = $("#get-users");
+getUsersButton.addEventListener("click", async (event)=>{
+	const response = await fetch("http://localhost:3000/api/users")
+	const data = await response.json();
+	const displayUsername = $("#display-username");
+	if(!data.error){
+	data.forEach((user)=>{
+		displayData(viewData,`<li>
+				<p><span>Username:</span> ${user.username}</p>
+				<p><span>ID:</span> ${user._id}</p>
+			</li>`)
+	})
+	}else{
+		displayData(viewData, `<li>
+				<p>No usernames in the database</p>
+			</li>`)
+	}
+	viewContainer.classList.remove("hide");
+})
+function displayData(element,html){
+	element.insertAdjacentHTML("beforeend", html);
+}
+</script>
+</body>
+</html>
